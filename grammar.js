@@ -36,10 +36,15 @@ module.exports = grammar({
       '}',
     ),
 
-    // _statement: $ => choice(
-    //   $.expression_statement,
-    //   $._declaration_statement,
-    // ),
+    _statement: $ => choice(
+      $.expression_statement,
+      $._declaration_statement,
+    ),
+
+    expression_statement: $ => choice(
+      seq($._expression, ';'),
+      prec(1, $._expression_ending_with_block),
+    ),
 
     _declaration_statement: $ => choice(
       // $.struct_definition,
@@ -72,7 +77,7 @@ module.exports = grammar({
       field('name', $.identifier),
       field('type_parameters', optional($.type_parameters)),
       field('parameters', $.parameters),
-      optional(seq('->', field('return_type', $._type))),
+      optional(seq(':', field('return_type', $._type))),
       // optional($.where_clause),
       field('body', $.block),
     ),
@@ -170,9 +175,64 @@ module.exports = grammar({
 
     reference_type: $ => seq('&', field('type', $._type)),
 
+    mutable_specifier: _ => 'mut',
+
+    // Section - Expressions
+
+    _expression_except_range: $ => choice(
+      $.unary_expression,
+      $.reference_expression,
+      $.try_expression,
+      $.binary_expression,
+      $.assignment_expression,
+      $.compound_assignment_expr,
+      $.type_cast_expression,
+      $.call_expression,
+      $.return_expression,
+      $.yield_expression,
+      $._literal,
+      prec.left($.identifier),
+      alias(choice(...primitive_types), $.identifier),
+      // prec.left($._reserved_identifier),
+      $.self,
+      $.scoped_identifier,
+      $.generic_function,
+      $.await_expression,
+      $.field_expression,
+      $.array_expression,
+      $.tuple_expression,
+      // prec(1, $.macro_invocation),
+      $.unit_expression,
+      $.break_expression,
+      $.continue_expression,
+      $.index_expression,
+      $.metavariable,
+      $.closure_expression,
+      $.parenthesized_expression,
+      $.struct_expression,
+      $._expression_ending_with_block,
+    ),
+
+    _expression: $ => choice(
+      $._expression_except_range,
+      // $.range_expression,
+    ),
+
+    _expression_ending_with_block: $ => choice(
+      $.unsafe_block,
+      $.async_block,
+      $.block,
+      $.if_expression,
+      $.match_expression,
+      $.while_expression,
+      $.loop_expression,
+      $.for_expression,
+      $.const_block,
+    ),
+
     block: $ => seq(
       '{',
-      // repeat($._statement),
+      repeat($._statement),
       // optional($._expression),
       '}',
     ),
